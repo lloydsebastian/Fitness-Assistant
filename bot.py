@@ -74,7 +74,10 @@ model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-# Generate personalized fitness routine based on user data.
+# Configure tokenizer (add this after loading the tokenizer)
+tokenizer.pad_token = tokenizer.eos_token  # Set pad token to eos token
+tokenizer.padding_side = "left"  # For batch generation compatibility
+
 async def generate_routine(user_data):
     prompt = (
         f"You are a professional fitness trainer. Create a clear, numbered exercise plan until the goal is achieved for a "
@@ -82,15 +85,35 @@ async def generate_routine(user_data):
         f"{user_data['weight']} kg. The goal is {user_data['goal']}. Provide day-by-day numbered instructions. "
         "Include a disclaimer: 'This advice is for informational purposes only and is not a substitute for professional guidance.'"
     )
-    input_ids = tokenizer.encode(prompt, return_tensors='pt').to(device)
+    
+    # Encode the input with return_attention_mask=True
+    inputs = tokenizer(prompt, return_tensors='pt', return_attention_mask=True).to(device)
+    
+    # Generate with proper attention mask and pad token ID
     output_ids = model.generate(
-        input_ids,
-        max_length=300,
+        input_ids=inputs.input_ids,
+        attention_mask=inputs.attention_mask,
+        pad_token_id=tokenizer.pad_token_id,
+        max_length=500,  # Increased slightly for better responses
         num_return_sequences=1,
         no_repeat_ngram_size=2,
-        early_stopping=True
+        early_stopping=True,
+        temperature=0.7,  # For more focused responses
+        top_p=0.9,       # Nucleus sampling
     )
-    routine = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    
+    # Decode and clean the output
+    full_output = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    
+    # Remove the prompt from the output
+    routine = full_output.replace(prompt, "").strip()
+    
+    # Additional cleaning if needed
+    if routine.startswith(":"):
+        routine = routine[1:].strip()
+    if routine.endswith('"'):
+        routine = routine[:-1].strip()
+    
     return routine
 
 # Handle confirmation: If 'yes', generate routine; if 'no', restart.

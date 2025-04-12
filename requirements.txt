@@ -1,3 +1,6 @@
-python-telegram-bot==13.7
+python-telegram-bot
 transformers
 torch
+python-dotenv
+accelerate
+nest-asyncio
