@@ -1,6 +1,9 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from dotenv import load_dotenv
 import torch
 import os
+
+load_dotenv()
 
 class FitnessModel:
     def __init__(self):

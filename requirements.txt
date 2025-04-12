@@ -4,3 +4,4 @@ torch
 python-dotenv
 accelerate
 nest-asyncio
+"python-telegram-bot[callback-data]"

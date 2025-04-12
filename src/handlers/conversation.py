@@ -1,3 +1,6 @@
+from datetime import datetime
+from src.database.db_connector import Database
+from src.handlers import commands
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes, 
@@ -5,11 +8,13 @@ from telegram.ext import (
     CommandHandler, 
     MessageHandler, 
     filters,
-    CallbackQueryHandler
+    CallbackQueryHandler,
+    TypeHandler
 )
 from src.utils import keyboards, helpers
 from src.ai.model_handler import FitnessModel
-
+import logging
+logger = logging.getLogger(__name__)
 # Conversation states
 AGE, SEX, HEIGHT, WEIGHT, GOAL = range(5)
 model = FitnessModel()
@@ -22,9 +27,14 @@ async def start_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return AGE
 
 async def handle_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    age = update.message.text
-    if not age.isdigit() or not 12 <= int(age) <= 100:
-        await update.message.reply_text("Please enter a valid age (12-100)")
+    logger.info(f"Received age input: {update.message.text}")  # Log the input
+    age = update.message.text.strip()  # Remove extra spaces
+    if not age.isdigit():
+        await update.message.reply_text("Please enter a valid number for your age.")
+        return AGE
+    age = int(age)
+    if not 12 <= age <= 100:
+        await update.message.reply_text("Please enter a valid age (12-100).")
         return AGE
     context.user_data['age'] = age
     await update.message.reply_text(
@@ -89,13 +99,18 @@ async def handle_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 conv_handler = ConversationHandler(
-    entry_points=[CommandHandler('start', start_conversation)],
+    entry_points=[
+        CommandHandler('newplan', start_conversation)
+    ],
     states={
-        AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_age)],
+        AGE: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_age),
+            # Optional: Handler to log/handle unexpected updates
+        ],
         SEX: [CallbackQueryHandler(handle_sex)],
         HEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_height)],
         WEIGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_weight)],
         GOAL: [CallbackQueryHandler(handle_goal)]
     },
-    fallbacks=[CommandHandler('cancel', commands.cancel)]
+    fallbacks=[CommandHandler('cancel', lambda update, context: __import__('src.handlers.commands').cancel(update, context))],
 )
