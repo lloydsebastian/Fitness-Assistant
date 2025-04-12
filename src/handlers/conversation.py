@@ -2,6 +2,8 @@ from datetime import datetime
 from src.database.db_connector import Database
 from src.handlers import commands
 from telegram import Update, InlineKeyboardMarkup
+from telegram.constants import ChatAction
+
 from telegram.ext import (
     ContextTypes, 
     ConversationHandler, 
@@ -76,6 +78,12 @@ async def handle_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     context.user_data['goal'] = query.data
+
+    # Notify the user the bot is generating their plan
+    await context.bot.send_chat_action(
+        chat_id=update.effective_chat.id,
+        action=ChatAction.TYPING
+    )
     
     # Generate workout plan
     plan = model.generate_plan(context.user_data)
