@@ -1,6 +1,7 @@
 from datetime import datetime
 from src.database.db_connector import Database
 from src.handlers import commands
+from src.utils.beutify import beautify_plan
 from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ChatAction
 
@@ -87,6 +88,8 @@ async def handle_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Generate workout plan
     plan = model.generate_plan(context.user_data)
+    # Beautify the plan output
+    plan = beautify_plan(plan)
     
     # Save to database
     db = Database()
