@@ -36,10 +36,15 @@ class FitnessModel:
     Please ensure the response is only plain text without any code formatting or programming syntax.
     """
         inputs = self.tokenizer(prompt, return_tensors="pt")
+        inputs = {key: value.to(self.device) for key, value in inputs.items()}
         outputs = self.model.generate(
-            inputs.input_ids,
+            inputs["input_ids"],
             max_length=1024,
             temperature=0.7,
             do_sample=True
         )
-        return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        decoded_output = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        if decoded_output.startswith(prompt):
+            decoded_output = decoded_output[len(prompt):]
+        return decoded_output.strip()

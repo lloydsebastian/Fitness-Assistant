@@ -79,10 +79,10 @@ async def handle_goal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     context.user_data['goal'] = query.data
 
-    # Notify the user the bot is generating their plan
-    await context.bot.send_chat_action(
-        chat_id=update.effective_chat.id,
-        action=ChatAction.TYPING
+    # Send a stylish interim message indicating that processing has started.
+    loading_message = await query.message.reply_text(
+        "⏳ Generating your personalized plan, please wait...", 
+        parse_mode="HTML"
     )
     
     # Generate workout plan
